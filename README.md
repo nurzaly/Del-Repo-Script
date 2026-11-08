@@ -1,48 +1,50 @@
 # 🧹 GitHub Cleanup
 
-Skrip Python untuk membersihkan repo GitHub lama yang tidak digunakan lagi. Anda boleh **padam** atau **archive** repo secara pukal, tetapi setiap tindakan perlu **pengesahan anda dahulu**.
+A Python script for cleaning up old, unused GitHub repositories. You can **delete** or **archive** repos in bulk, and **nothing changes until you confirm it**.
 
-Ia hanya guna library standard Python, jadi tiada `pip install` diperlukan.
+It uses only the Python standard library, so there's nothing to `pip install`.
 
----
-
-## ✨ Ciri-ciri
-
-- 📋 Senarai semua repo milik anda (public & private), repo paling lama di atas
-- 🔍 Tapis ikut tempoh tiada aktiviti, fork sahaja, atau sembunyikan repo yang sudah di-archive
-- ✅ **3 lapis pengesahan** sebelum apa-apa diubah
-- 📦 Pilihan **archive** (read-only, boleh dibuka semula) selain padam
-- 💾 Pilihan **backup** (`git clone --mirror`) sebelum repo dipadam
-- 🧪 Mod **dry-run** untuk simulasi tanpa sebarang perubahan
-- 📝 Log setiap tindakan ke `github_cleanup_log.txt`
-- 🔁 Console kekal terbuka selepas selesai, dengan pilihan untuk ulang semula
+> ℹ️ The script's on-screen prompts are in Bahasa Melayu. This README explains each prompt in English.
 
 ---
 
-## 📦 Keperluan
+## ✨ Features
 
-- Python 3.8 atau lebih baharu
-- `git` (hanya jika guna `--backup`)
-- GitHub Personal Access Token
+- 📋 Lists all repos you own (public and private), oldest first
+- 🔍 Filters by inactivity period or forks only, and can hide repos that are already archived
+- ✅ **3 layers of confirmation** before anything changes
+- 📦 Option to **archive** a repo (read-only, can be reopened) instead of deleting it
+- 💾 Optional **backup** (`git clone --mirror`) before deleting
+- 🧪 **Dry-run** mode to simulate a run without changing anything
+- 📝 Logs every action to `github_cleanup_log.txt`
+- 🔁 The console stays open when the script finishes, with an option to run it again
 
-### Membuat token
+---
 
-Pergi ke **GitHub → Settings → Developer settings → Personal access tokens**.
+## 📦 Requirements
 
-| Jenis token | Kebenaran diperlukan |
+- Python 3.8 or newer
+- `git` (only needed for `--backup`)
+- A GitHub Personal Access Token
+
+### Creating a token
+
+Go to **GitHub → Settings → Developer settings → Personal access tokens**.
+
+| Token type | Required permissions |
 |---|---|
-| Classic | `repo` dan `delete_repo` |
+| Classic | `repo` and `delete_repo` |
 | Fine-grained | Repository access: *All repositories*<br>Permission: **Administration → Read and write** |
 
-> ⚠️ Simpan token dengan selamat. Jangan commit token ke dalam repo.
+> ⚠️ Keep your token safe. Never commit it to a repository.
 
 ---
 
-## 🚀 Cara guna
+## 🚀 Usage
 
-### 1. Set token (pilihan)
+### 1. Set the token (optional)
 
-Jika `GITHUB_TOKEN` tidak di-set, skrip akan minta token semasa dijalankan (input tersembunyi).
+If `GITHUB_TOKEN` is not set, the script asks for the token when it starts. What you type stays hidden.
 
 **Windows (PowerShell)**
 ```powershell
@@ -59,61 +61,63 @@ set GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 export GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 ```
 
-### 2. Jalankan
+### 2. Run it
 
 ```bash
 python github_cleanup.py
 ```
 
-Atau double-click `github_cleanup.py` di Windows. Console tidak akan tertutup sendiri.
+On Windows you can also double-click `github_cleanup.py`. The console window stays open when it finishes.
 
-### Pilihan (flags)
+### Options
 
-| Flag | Fungsi |
+| Flag | What it does |
 |---|---|
-| `--older-than N` | Hanya repo yang tiada push melebihi **N bulan** |
-| `--forks-only` | Hanya repo fork |
-| `--hide-archived` | Sembunyikan repo yang sudah di-archive |
-| `--backup` | `git clone --mirror` ke folder `backup_repos/` sebelum padam |
-| `--dry-run` | Simulasi sahaja, tiada repo diubah |
-| `-h`, `--help` | Papar bantuan |
+| `--older-than N` | Only shows repos with no push in the last **N months** |
+| `--forks-only` | Only shows forked repos |
+| `--hide-archived` | Hides repos that are already archived |
+| `--backup` | Runs `git clone --mirror` into `backup_repos/` before deleting |
+| `--dry-run` | Simulates the run without changing any repos |
+| `-h`, `--help` | Shows help |
 
-### Contoh
+### Examples
 
 ```bash
-# Cuba dulu, tiada apa dipadam
+# Try it first: nothing is deleted
 python github_cleanup.py --dry-run --older-than 12
 
-# Repo tiada aktiviti lebih 2 tahun, backup dulu sebelum padam
+# Repos inactive for more than 2 years, backed up before deletion
 python github_cleanup.py --older-than 24 --backup
 
-# Bersihkan repo fork sahaja
+# Clean up forks only
 python github_cleanup.py --forks-only --hide-archived
 ```
 
 ---
 
-## 🔐 Aliran pengesahan
+## 🔐 Confirmation flow
 
 ```
-Senarai repo
+Repo list
    │
    ▼
-[1] Pilih nombor repo      →  1,3,5-9  |  semua  |  (kosong = batal)
+[1] Pick repo numbers        →  1,3,5-9  |  semua (all)  |  (empty = cancel)
    │
    ▼
-[2] Sahkan setiap repo     →  p = padam   a = archive   l = langkau   q = berhenti
+[2] Confirm each repo        →  p = delete (padam)
+   │                            a = archive
+   │                            l = skip (langkau)
+   │                            q = quit
+   ▼
+[3] Summary + type "SAH <count>"   (e.g. SAH 7)
    │
    ▼
-[3] Ringkasan + taip "SAH <jumlah>"   (cth: SAH 7)
-   │
-   ▼
-Laksana → log → "Ulang lagi? [y/N]"
+Execute → log → "Ulang lagi? [y/N]" (run again?)
 ```
 
-Jika teks pengesahan di langkah 3 tidak sepadan, **semua dibatalkan** dan tiada apa-apa diubah.
+If the text you type at step 3 doesn't match exactly, **everything is cancelled** and nothing changes.
 
-### Contoh paparan
+### Sample output
 
 ```
  No  Nama repo                                Jenis    Push terakhir   ★     Saiz  Nota
@@ -125,34 +129,44 @@ Jika teks pengesahan di langkah 3 tidak sepadan, **semua dibatalkan** dan tiada 
 Jumlah: 3 repo
 ```
 
+*(Columns: No, Repo name, Visibility, Last push, Stars, Size, Notes. "Jumlah" = total.)*
+
 ---
 
-## 💾 Backup & pemulihan
+## 💾 Backup & recovery
 
-- Dengan `--backup`, setiap repo di-clone sebagai mirror penuh (semua branch & tag) ke `backup_repos/<nama>.git` **sebelum** dipadam. Jika backup gagal, repo itu **tidak** dipadam.
-- Untuk pulihkan dari backup:
+- With `--backup`, each repo is cloned as a full mirror (all branches and tags) into `backup_repos/<name>.git` **before** it is deleted. If the backup fails, that repo is **not** deleted.
+- To restore a repo from a backup, first create an empty repo on GitHub, then run:
   ```bash
-  cd backup_repos/nama-repo.git
-  git push --mirror https://github.com/USERNAME/nama-repo.git
+  cd backup_repos/repo-name.git
+  git push --mirror https://github.com/USERNAME/repo-name.git
   ```
-  (Cipta repo kosong di GitHub dahulu.)
-- GitHub juga membenarkan pemulihan repo yang dipadam dalam tempoh **90 hari** melalui **Settings → Repositories → Deleted repositories**, tetapi tidak semua repo layak dipulihkan (contohnya repo fork).
+- GitHub also lets you restore deleted repos within **90 days** under **Settings → Repositories → Deleted repositories**. Not every repo can be restored this way (forks, for example).
 
-> 💡 **Tip:** Jika tidak pasti, pilih **archive**. Repo jadi read-only tetapi masih ada dan boleh di-unarchive bila-bila masa.
+> 💡 **Tip:** If you're unsure about a repo, choose **archive**. It becomes read-only but stays on GitHub, and you can unarchive it at any time.
 
 ---
 
-## 🛠️ Masalah biasa
+## 🛠️ Troubleshooting
 
-| Mesej | Penyelesaian |
+| Message | Fix |
 |---|---|
-| `Token tidak sah (401)` | Token salah atau sudah tamat tempoh. Jana token baharu. |
-| `Tiada kebenaran padam ... delete_repo` | Tambah scope `delete_repo` (classic) atau *Administration: Read and write* (fine-grained). |
-| `Backup gagal` | Pastikan `git` dipasang dan ada dalam PATH. |
-| Repo organisasi tidak tersenarai | Skrip hanya menyenaraikan repo **milik anda sendiri** (`affiliation=owner`). |
+| `Token tidak sah (401)` (invalid token) | The token is wrong or expired. Generate a new one. |
+| `Tiada kebenaran padam ... delete_repo` (no delete permission) | Add the `delete_repo` scope (classic token) or *Administration: Read and write* (fine-grained token). |
+| `Backup gagal` (backup failed) | Make sure `git` is installed and on your PATH. |
+| Organization repos are missing | The script only lists repos **you own** (`affiliation=owner`). |
 
 ---
 
-## ⚠️ Penafian
+## 🙈 Recommended `.gitignore`
 
-Pemadaman repo adalah **kekal**. Gunakan `--dry-run` dan `--backup` terlebih dahulu. Pengguna bertanggungjawab sepenuhnya ke atas repo yang dipadam menggunakan skrip ini.
+```gitignore
+backup_repos/
+github_cleanup_log.txt
+```
+
+---
+
+## ⚠️ Disclaimer
+
+Deleting a repository is **permanent**. Use `--dry-run` and `--backup` first. You are fully responsible for any repositories you delete with this script.
