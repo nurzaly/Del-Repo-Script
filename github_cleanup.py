@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-github_cleanup.py - Robot pembersih repo GitHub (dengan pengesahan)
+github_cleanup.py - GitHub repo cleanup bot (with confirmation)
 
-Cara guna:
-    python github_cleanup.py                    # senarai semua repo milik anda
-    python github_cleanup.py --older-than 12    # hanya repo tiada push > 12 bulan
-    python github_cleanup.py --forks-only       # hanya repo fork
-    python github_cleanup.py --backup           # clone --mirror dulu sebelum padam
-    python github_cleanup.py --dry-run          # simulasi sahaja, tiada apa dipadam
+Usage:
+    python github_cleanup.py                    # list all repos you own
+    python github_cleanup.py --older-than 12    # only repos with no push > 12 months
+    python github_cleanup.py --forks-only       # forks only
+    python github_cleanup.py --backup           # clone --mirror before deleting
+    python github_cleanup.py --dry-run          # simulate only, nothing is deleted
 
 Token:
-    Set pemboleh ubah GITHUB_TOKEN, atau skrip akan minta token semasa dijalankan.
+    Set the GITHUB_TOKEN environment variable, or the script will prompt for it.
     - Classic token : scope "repo" + "delete_repo"
     - Fine-grained  : Repository permission "Administration: Read and write"
 """
@@ -65,7 +65,7 @@ def get_all_repos(token):
     while url:
         status, data, link = api("GET", url, token)
         if status != 200:
-            sys.exit(f"Gagal ambil senarai repo ({status}): {data.get('message')}")
+            sys.exit(f"Failed to fetch repo list ({status}): {data.get('message')}")
         repos.extend(data)
         url = next_link(link)
     return repos
@@ -84,7 +84,7 @@ def months_ago(d):
 
 def parse_selection(text, max_n):
     text = text.strip().lower()
-    if text in ("all", "semua"):
+    if text == "all":
         return list(range(1, max_n + 1))
     picked = set()
     for part in text.replace(" ", "").split(","):
@@ -108,46 +108,46 @@ def backup_repo(repo, token, folder="backup_repos"):
     os.makedirs(folder, exist_ok=True)
     target = os.path.join(folder, repo["name"] + ".git")
     if os.path.exists(target):
-        print(f"   Backup sudah wujud: {target}")
+        print(f"   Backup already exists: {target}")
         return True
     url = repo["clone_url"].replace("https://", f"https://x-access-token:{token}@")
     print(f"   Backup -> {target} ...")
     r = subprocess.run(["git", "clone", "--mirror", "--quiet", url, target],
                        capture_output=True, text=True)
     if r.returncode != 0:
-        print(f"   ✗ Backup gagal: {r.stderr.strip().replace(token, '***')}")
+        print(f"   ✗ Backup failed: {r.stderr.strip().replace(token, '***')}")
         return False
-    print("   ✓ Backup siap")
+    print("   ✓ Backup complete")
     return True
 
 
 # ---------------------------------------------------------------- main
 def parse_args():
-    p = argparse.ArgumentParser(description="Padam / archive repo GitHub lama dengan pengesahan.")
-    p.add_argument("--older-than", type=int, default=0, metavar="BULAN",
-                   help="Hanya tunjuk repo yang tiada push melebihi N bulan")
-    p.add_argument("--forks-only", action="store_true", help="Hanya tunjuk repo fork")
-    p.add_argument("--hide-archived", action="store_true", help="Sembunyikan repo yang sudah di-archive")
-    p.add_argument("--backup", action="store_true", help="git clone --mirror sebelum padam")
-    p.add_argument("--dry-run", action="store_true", help="Simulasi sahaja, tiada perubahan")
+    p = argparse.ArgumentParser(description="Delete / archive old GitHub repos with confirmation.")
+    p.add_argument("--older-than", type=int, default=0, metavar="MONTHS",
+                   help="Only show repos with no push in the last N months")
+    p.add_argument("--forks-only", action="store_true", help="Only show forked repos")
+    p.add_argument("--hide-archived", action="store_true", help="Hide repos that are already archived")
+    p.add_argument("--backup", action="store_true", help="git clone --mirror before deleting")
+    p.add_argument("--dry-run", action="store_true", help="Simulate only, make no changes")
     return p.parse_args()
 
 
 def get_token():
     token = os.environ.get("GITHUB_TOKEN") or getpass.getpass("GitHub token: ").strip()
     if not token:
-        sys.exit("Token diperlukan.")
+        sys.exit("A token is required.")
     return token
 
 
 def run_once(args, token):
     status, me, _ = api("GET", "/user", token)
     if status != 200:
-        sys.exit(f"Token tidak sah ({status}): {me.get('message')}")
+        sys.exit(f"Invalid token ({status}): {me.get('message')}")
     username = me["login"]
-    print(f"\nLog masuk sebagai: {username}")
+    print(f"\nLogged in as: {username}")
     if args.dry_run:
-        print(">>> MOD DRY-RUN: tiada repo akan dipadam/di-archive <<<")
+        print(">>> DRY-RUN MODE: no repos will be deleted or archived <<<")
 
     repos = get_all_repos(token)
     if args.older_than:
@@ -158,11 +158,11 @@ def run_once(args, token):
         repos = [r for r in repos if not r["archived"]]
 
     if not repos:
-        print("Tiada repo yang padan dengan tapisan.")
+        print("No repos match the filters.")
         return
 
-    # Paparan senarai
-    print(f"\n{'No':>3}  {'Nama repo':<40} {'Jenis':<8} {'Push terakhir':<13} {'★':>3} {'Saiz':>8}  Nota")
+    # Show list
+    print(f"\n{'No':>3}  {'Repo name':<40} {'Type':<8} {'Last push':<13} {'★':>3} {'Size':>8}  Notes")
     print("-" * 95)
     for i, r in enumerate(repos, 1):
         pushed = parse_date(r["pushed_at"])
@@ -174,59 +174,59 @@ def run_once(args, token):
         print(f"{i:>3}  {r['name'][:40]:<40} {'private' if r['private'] else 'public':<8} "
               f"{pushed.strftime('%Y-%m-%d') if pushed else '-':<13} "
               f"{r['stargazers_count']:>3} {r['size']/1024:>6.1f}MB  {', '.join(notes)}")
-    print(f"\nJumlah: {len(repos)} repo")
+    print(f"\nTotal: {len(repos)} repos")
 
-    sel = input("\nPilih nombor repo (cth: 1,3,5-9 | semua | kosong = batal): ")
+    sel = input("\nSelect repo numbers (e.g. 1,3,5-9 | all | empty = cancel): ")
     if not sel.strip():
-        print("Dibatalkan.")
+        print("Cancelled.")
         return
     try:
         chosen = [repos[n - 1] for n in parse_selection(sel, len(repos))]
     except ValueError:
-        sys.exit("Format pilihan tidak sah.")
+        sys.exit("Invalid selection format.")
     if not chosen:
-        print("Tiada repo dipilih.")
+        print("No repos selected.")
         return
 
-    # Pengesahan satu per satu
+    # Confirm one by one
     to_delete, to_archive = [], []
-    print("\nSahkan setiap repo:  [p] padam   [a] archive sahaja   [l] langkau   [q] berhenti")
+    print("\nConfirm each repo:  [d] delete   [a] archive only   [s] skip   [q] quit")
     for r in chosen:
         while True:
             ans = input(f"  {r['full_name']}  ->  ").strip().lower()
-            if ans in ("p", "a", "l", "q"):
+            if ans in ("d", "a", "s", "q"):
                 break
-            print("    Sila taip p / a / l / q")
+            print("    Please type d / a / s / q")
         if ans == "q":
             break
-        if ans == "p":
+        if ans == "d":
             to_delete.append(r)
         elif ans == "a":
             to_archive.append(r)
 
     if not to_delete and not to_archive:
-        print("Tiada tindakan dipilih. Selesai.")
+        print("No actions selected. Done.")
         return
 
-    # Ringkasan + pengesahan akhir
-    print("\n================ RINGKASAN ================")
+    # Summary + final confirmation
+    print("\n================= SUMMARY =================")
     if to_delete:
-        print(f"AKAN DIPADAM KEKAL ({len(to_delete)}):")
+        print(f"WILL BE PERMANENTLY DELETED ({len(to_delete)}):")
         for r in to_delete:
             print(f"   ✗ {r['full_name']}")
     if to_archive:
-        print(f"AKAN DI-ARCHIVE ({len(to_archive)}):")
+        print(f"WILL BE ARCHIVED ({len(to_archive)}):")
         for r in to_archive:
             print(f"   ▣ {r['full_name']}")
     print("===========================================")
 
-    phrase = f"SAH {len(to_delete) + len(to_archive)}"
-    confirm = input(f"\nTindakan PADAM tidak boleh diundur.\nTaip '{phrase}' untuk teruskan: ").strip()
+    phrase = f"CONFIRM {len(to_delete) + len(to_archive)}"
+    confirm = input(f"\nDELETE cannot be undone.\nType '{phrase}' to continue: ").strip()
     if confirm != phrase:
-        print("Pengesahan tidak sepadan. Dibatalkan — tiada apa-apa diubah.")
+        print("Confirmation did not match. Cancelled — nothing was changed.")
         return
 
-    # Laksana
+    # Execute
     ok = fail = 0
     for r in to_archive:
         name = r["full_name"]
@@ -239,39 +239,39 @@ def run_once(args, token):
             log(f"ARCHIVED {name}")
             ok += 1
         else:
-            print(f"✗ Gagal archive {name} ({status}): {data.get('message')}")
+            print(f"✗ Failed to archive {name} ({status}): {data.get('message')}")
             fail += 1
 
     for r in to_delete:
         name = r["full_name"]
         if args.backup and not args.dry_run:
             if not backup_repo(r, token):
-                print(f"   Langkau padam {name} kerana backup gagal.")
+                print(f"   Skipping delete of {name} because the backup failed.")
                 fail += 1
                 continue
         if args.dry_run:
-            print(f"[dry-run] padam {name}")
+            print(f"[dry-run] delete {name}")
             continue
         status, data, _ = api("DELETE", f"/repos/{name}", token)
         if status == 204:
-            print(f"✓ Dipadam: {name}")
+            print(f"✓ Deleted: {name}")
             log(f"DELETED {name}")
             ok += 1
         elif status == 403:
-            print(f"✗ Tiada kebenaran padam {name}. Token perlukan scope 'delete_repo'.")
+            print(f"✗ No permission to delete {name}. Token needs the 'delete_repo' scope.")
             fail += 1
         else:
-            print(f"✗ Gagal padam {name} ({status}): {data.get('message')}")
+            print(f"✗ Failed to delete {name} ({status}): {data.get('message')}")
             fail += 1
 
-    print(f"\nSelesai. Berjaya: {ok}  Gagal: {fail}")
+    print(f"\nDone. Succeeded: {ok}  Failed: {fail}")
     if not args.dry_run and ok:
-        print(f"Log disimpan dalam {LOG_FILE}")
+        print(f"Log saved to {LOG_FILE}")
 
 
 def pause():
     try:
-        input("\nTekan Enter untuk keluar...")
+        input("\nPress Enter to exit...")
     except (KeyboardInterrupt, EOFError):
         pass
 
@@ -287,19 +287,19 @@ def main():
     while True:
         try:
             run_once(args, token)
-        except SystemExit as e:          # ralat dalam run_once: papar, jangan tutup
+        except SystemExit as e:          # error in run_once: show it, keep console open
             if e.code:
                 print(f"\n{e.code}")
         except KeyboardInterrupt:
-            print("\nDibatalkan oleh pengguna.")
-        except Exception as e:           # ralat tak dijangka: papar, jangan tutup
-            print(f"\nRalat: {e}")
+            print("\nCancelled by user.")
+        except Exception as e:           # unexpected error: show it, keep console open
+            print(f"\nError: {e}")
 
         try:
-            again = input("\nUlang lagi (senarai dikemas kini)? [y/N]: ").strip().lower()
+            again = input("\nRun again (refreshed list)? [y/N]: ").strip().lower()
         except (KeyboardInterrupt, EOFError):
             break
-        if again not in ("y", "ya"):
+        if again not in ("y", "yes"):
             break
 
 

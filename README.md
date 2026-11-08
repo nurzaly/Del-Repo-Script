@@ -4,8 +4,6 @@ A Python script for cleaning up old, unused GitHub repositories. You can **delet
 
 It uses only the Python standard library, so there's nothing to `pip install`.
 
-> ℹ️ The script's on-screen prompts are in Bahasa Melayu. This README explains each prompt in English.
-
 ---
 
 ## ✨ Features
@@ -101,18 +99,18 @@ python github_cleanup.py --forks-only --hide-archived
 Repo list
    │
    ▼
-[1] Pick repo numbers        →  1,3,5-9  |  semua (all)  |  (empty = cancel)
+[1] Pick repo numbers        →  1,3,5-9  |  all  |  (empty = cancel)
    │
    ▼
-[2] Confirm each repo        →  p = delete (padam)
+[2] Confirm each repo        →  d = delete
    │                            a = archive
-   │                            l = skip (langkau)
+   │                            s = skip
    │                            q = quit
    ▼
-[3] Summary + type "SAH <count>"   (e.g. SAH 7)
+[3] Summary + type "CONFIRM <count>"   (e.g. CONFIRM 7)
    │
    ▼
-Execute → log → "Ulang lagi? [y/N]" (run again?)
+Execute → log → "Run again? [y/N]"
 ```
 
 If the text you type at step 3 doesn't match exactly, **everything is cancelled** and nothing changes.
@@ -120,16 +118,14 @@ If the text you type at step 3 doesn't match exactly, **everything is cancelled*
 ### Sample output
 
 ```
- No  Nama repo                                Jenis    Push terakhir   ★     Saiz  Nota
+ No  Repo name                                Type     Last push       ★     Size  Notes
 -----------------------------------------------------------------------------------------------
   1  test-laravel-2019                        public   2019-04-12      0    1.2MB
   2  bootstrap-fork                           public   2020-01-03      0    8.4MB  fork
   3  old-portfolio                            private  2021-07-21      1    3.0MB  archived
 
-Jumlah: 3 repo
+Total: 3 repos
 ```
-
-*(Columns: No, Repo name, Visibility, Last push, Stars, Size, Notes. "Jumlah" = total.)*
 
 ---
 
@@ -151,9 +147,9 @@ Jumlah: 3 repo
 
 | Message | Fix |
 |---|---|
-| `Token tidak sah (401)` (invalid token) | The token is wrong or expired. Generate a new one. |
-| `Tiada kebenaran padam ... delete_repo` (no delete permission) | Add the `delete_repo` scope (classic token) or *Administration: Read and write* (fine-grained token). |
-| `Backup gagal` (backup failed) | Make sure `git` is installed and on your PATH. |
+| `Invalid token (401)` | The token is wrong or expired. Generate a new one. |
+| `No permission to delete ... 'delete_repo' scope` | Add the `delete_repo` scope (classic token) or *Administration: Read and write* (fine-grained token). |
+| `Backup failed` | Make sure `git` is installed and on your PATH. |
 | Organization repos are missing | The script only lists repos **you own** (`affiliation=owner`). |
 
 ---
